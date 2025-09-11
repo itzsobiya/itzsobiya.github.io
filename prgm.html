@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebAR — Pass & Badge</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+
+
+    <!-- A-Frame + AR.js -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.4/aframe/build/aframe-ar.js"></script>
+
+    <!-- Web3 -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
+    <script src="https://unpkg.com/web3modal"></script>
+  </head>
+  <body>
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">WebAR Demo</div>
+      <div class="actions">
+        <button id="connectBtn" class="btn primary">Connect Wallet</button>
+        <button id="mintBtn" class="btn" hidden>Mint Pass</button>
+        <button id="badgeBtn" class="btn" hidden>Claim Badge</button>
+
+      </div>
+    </header>
+
+    <!-- Status toast -->
+    <div id="status" class="toast">Ready</div>
+
+    <!-- AR viewport -->
+    <main class="stage">
+      <a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        vr-mode-ui="enabled: false"
+        renderer="precision: mediump"
+      >
+        <!-- Show only after pass check -->
+        <a-entity
+          id="arModel"
+          gltf-model="url(model.glb)"
+          position="0 0 0"
+          scale="0.5 0.5 0.5"
+          visible="false"
+        ></a-entity>
+
+        <a-marker-camera preset="hiro"></a-marker-camera>
+      </a-scene>
+    </main>
+    <div id="qrcode" style="position: relative; display: inline-block;"></div>
+    <footer class="footnote">
+      Scan the Hiro marker to see the model. Need a pass? Mint it free on testnet.
+    </footer>
+
+   <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+<script src="https://unpkg.com/web3modal"></script>
+<script src="https://unpkg.com/@walletconnect/web3-provider"></script>
+
+<script>
+  const qrLink = "https://itzsobiya.github.io/ar-pass"; // 🔗 Replace with your hosted AR page
+
+  // Generate QR
+  const qrcode = new QRCode(document.getElementById("qrcode"), {
+    text: qrLink,
+    width: 200,
+    height: 200,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  // Add logo overlay in the center
+  const logoUrl = "logo.png"; // 🖼️ replace with your project logo (PNG in same folder)
+  const qrContainer = document.getElementById("qrcode");
+
+  const logo = document.createElement("img");
+  logo.src = logoUrl;
+  logo.style.position = "absolute";
+  logo.style.top = "50%";
+  logo.style.left = "50%";
+  logo.style.transform = "translate(-50%, -50%)";
+  logo.style.width = "50px";  // adjust size
+  logo.style.height = "50px";
+  qrContainer.appendChild(logo);
+
+  const CONTRACT_ADDRESS = "0x35ae321CaEa5977d96344C877dEf5d003C7A6CF5";
+  const ABI = [ [
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "balance",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "needed",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "ERC1155InsufficientBalance",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "approver",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155InvalidApprover",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "idsLength",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "valuesLength",
+				"type": "uint256"
+			}
+		],
+		"name": "ERC1155InvalidArrayLength",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155InvalidOperator",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "receiver",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155InvalidReceiver",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155InvalidSender",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155MissingApprovalForAll",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "OwnableInvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "ApprovalForAll",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "mintBadge",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "mintPass",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "values",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeBatchTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "setApprovalForAll",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "values",
+				"type": "uint256[]"
+			}
+		],
+		"name": "TransferBatch",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			}
+		],
+		"name": "TransferSingle",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "value",
+				"type": "string"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "URI",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "BADGE_ID",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address[]",
+				"name": "accounts",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			}
+		],
+		"name": "balanceOfBatch",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "isApprovedForAll",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "PASS_ID",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes4",
+				"name": "interfaceId",
+				"type": "bytes4"
+			}
+		],
+		"name": "supportsInterface",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "uri",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+] ];
+  const PASS_ID = 1, BADGE_ID = 2;
+
+  var web3, contract, accounts;
+
+  async function connectWallet() {
+    if (window.ethereum) {
+      try {
+        // ✅ Request MetaMask accounts
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+
+        // Create web3 instance
+        web3 = new Web3(window.ethereum);
+        accounts = await web3.eth.getAccounts();
+
+        // Contract instance
+        contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+        document.getElementById("status").innerText = "Connected: " + accounts[0];
+        checkBalances();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").innerText = "⚠️ Wallet connection rejected";
+      }
+    } else {
+      alert("MetaMask not detected! Please install MetaMask or use WalletConnect.");
+
+      // ✅ Fallback to WalletConnect
+      const providerOptions = {
+        walletconnect: {
+          package: window.WalletConnectProvider.default,
+          options: {
+            rpc: { 11155111: "https://rpc.sepolia.org" }
+          }
+        }
+      };
+      const web3Modal = new Web3Modal({ cacheProvider: false, providerOptions });
+      const provider = await web3Modal.connect();
+
+      web3 = new Web3(provider);
+      accounts = await web3.eth.getAccounts();
+      contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+      document.getElementById("status").innerText = "Connected (WC): " + accounts[0];
+      checkBalances();
+    }
+  }
+
+
+      async function checkPass() {
+        try {
+          const bal = await contract.methods.balanceOf(accounts[0], PASS_ID).call();
+          const hasPass = Number(bal) > 0;
+          $("arModel").setAttribute("visible", hasPass);
+          show($("mintBtn"), !hasPass);
+          show($("badgeBtn"), hasPass);
+          toast(hasPass ? "✅ Pass found. AR unlocked." : "❌ No pass. Please mint.");
+        } catch (e) {
+          console.error(e);
+          toast("Read error — check network/contract");
+        }
+      }
+
+      async function mintPass() {
+        try {
+          toast("Minting pass…");
+          await contract.methods.mintPass().send({ from: accounts[0] });
+          toast("🎉 Pass minted");
+          await checkPass();
+        } catch (e) {
+          console.error(e);
+          toast("Mint failed");
+        }
+      }
+
+      async function claimBadge() {
+        try {
+          toast("Claiming badge…");
+          await contract.methods.mintBadge().send({ from: accounts[0] });
+          toast("🏅 Badge claimed");
+        } catch (e) {
+          console.error(e);
+          toast("Claim failed");
+        }
+      }
+
+      // ====== HOOKUP ======
+      $("connectBtn").onclick = connectWallet;
+      $("mintBtn").onclick = mintPass;
+      $("badgeBtn").onclick = claimBadge;
+    </script>
+  </body>
+</html>

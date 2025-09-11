@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AR Pass QR</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #f9f9f9;
+      font-family: Arial, sans-serif;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    #qrcode {
+      position: relative;
+      width: 220px;
+      height: 220px;
+    }
+    #qrcode img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;  /* size of logo inside QR */
+      height: 60px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📱 Scan to Enter AR Experience</h2>
+  <div id="qrcode"></div>
+
+  <script>
+    const qrLink = "https://itzsobiya.github.io/ar-pass"; // 🔗 Replace with your hosted AR page
+    const qrContainer = document.getElementById("qrcode");
+
+    // Generate QR Code
+    new QRCode(qrContainer, {
+      text: qrLink,
+      width: 220,
+      height: 220,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    // Add logo overlay
+    const logo = document.createElement("img");
+    logo.src = "logo.png"; // 🖼️ replace with your logo (PNG in same folder)
+    qrContainer.appendChild(logo);
+  </script>
+</body>
+</html>
