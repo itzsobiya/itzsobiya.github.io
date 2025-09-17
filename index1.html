@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAR Gated Access</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #fdbb2d;
+        }
+        
+        .qr-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status.locked {
+            background: rgba(178, 31, 31, 0.3);
+            border: 1px solid #b21f1f;
+        }
+        
+        .status.unlocked {
+            background: rgba(0, 128, 0, 0.3);
+            border: 1px solid #00ff00;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 12px 25px;
+            background: #fdbb2d;
+            color: #1a2a6c;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+            text-decoration: none;
+        }
+        
+        .button:hover {
+            background: #ffcc44;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .button.secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        
+        .ar-container {
+            width: 100%;
+            height: 300px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .ar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #12c2e9, #c471ed, #f64f59);
+            border-radius: 50px;
+            margin: 10px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        
+        .flex-item {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .info-text {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .step-number {
+            background: #fdbb2d;
+            color: #1a2a6c;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .step-text {
+            flex: 1;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        @media (max-width: 768px) {
+            .flex-container {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WebAR Gated Access</h1>
+            <p class="subtitle">Unlock Augmented Reality experiences with your blockchain pass</p>
+        </header>
+        
+        <div class="flex-container">
+            <div class="flex-item">
+                <div class="card">
+                    <h2 class="card-title">How It Works</h2>
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">Scan the QR code to open the WebAR page</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">Connect your wallet using Web3Modal</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">If you don't have a pass, mint one (free on testnet)</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-text">Access the AR experience and claim your badge</div>
+                    </div>
+                    
+                    <div class="qr-container">
+                        <div class="qr-code">
+                            <!-- Placeholder for QR code -->
+                            <img src="file:///C:/Users/sobiy/OneDrive/Desktop/project/index1.html" alt="QR Code">
+                        </div>
+                        <p>Scan to open WebAR page</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-title">Access Control</h2>
+                    <div class="status locked" id="accessStatus">
+                        AR Content Locked - Connect Wallet
+                    </div>
+                    <div style="text-align: center;">
+                        <button class="button" id="connectWallet">Connect Wallet</button>
+                        <button class="button secondary" id="mintPass">Mint Pass</button>
+                        <button class="button secondary" id="claimBadge">Claim Badge</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-item">
+                <div class="card">
+                    <h2 class="card-title">AR Experience</h2>
+                    <div class="ar-container">
+                        <div class="ar-placeholder">
+                            AR content will appear here after access is granted
+                        </div>
+                    </div>
+                    <p class="info-text">Point your camera at the AR marker to see the special content</p>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-title">Your Collection</h2>
+                    <div id="collection">
+                        <p>Connect your wallet to view your passes and badges</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>WebAR Gated Access Demo | Blockchain-powered Augmented Reality</p>
+            <p>Uses Ethereum testnet for free transactions</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const accessStatus = document.getElementById('accessStatus');
+            const connectWalletBtn = document.getElementById('connectWallet');
+            const mintPassBtn = document.getElementById('mintPass');
+            const claimBadgeBtn = document.getElementById('claimBadge');
+            const collectionDiv = document.getElementById('collection');
+            
+            // State management
+            let walletConnected = false;
+            let hasPass = false;
+            let hasBadge = false;
+            
+            // Sepolia testnet details
+            const SEPOLIA_CHAIN_ID = '11155111'; // 11155111 in decimal
+            const SEPOLIA_RPC_URL = 'https://sepolia.infura.io'; // You would need to add your own Infura ID here
+            
+            // Contract details (for demonstration - you would replace with your actual contract address)
+            const CONTRACT_ADDRESS = '0x35ae321CaEa5977d96344C877dEf5d003C7A6CF5';
+            
+            // Mock contract ABI for demonstration (you would use the actual ABI from your compiled contract)
+            const CONTRACT_ABI =[
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_baseURI",
+				"type": "string"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "ApprovalForAll",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "recipient",
+				"type": "address"
+			}
+		],
+		"name": "BadgeClaimed",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address[]",
+				"name": "recipients",
+				"type": "address[]"
+			}
+		],
+		"name": "batchMintPasses",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "claimBadge",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "mintPass",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "recipient",
+				"type": "address"
+			}
+		],
+		"name": "PassMinted",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "amounts",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeBatchTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "setApprovalForAll",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_newBaseURI",
+				"type": "string"
+			}
+		],
+		"name": "setBaseURI",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "values",
+				"type": "uint256[]"
+			}
+		],
+		"name": "TransferBatch",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			}
+		],
+		"name": "TransferSingle",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "value",
+				"type": "string"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "URI",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "BADGE_ID",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address[]",
+				"name": "accounts",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			}
+		],
+		"name": "balanceOfBatch",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "baseURI",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "hasClaimedBadge",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "isApprovedForAll",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "PASS_ID",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes4",
+				"name": "interfaceId",
+				"type": "bytes4"
+			}
+		],
+		"name": "supportsInterface",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "uri",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
+
+            // Simulate wallet connection
+            connectWalletBtn.addEventListener('click', function() {
+                walletConnected = true;
+                updateUI();
+                
+                // Simulate checking if user has pass
+                setTimeout(() => {
+                    // For demo purposes, randomly determine if user has pass
+                    hasPass = Math.random() > 0.5;
+                    updateUI();
+                }, 1000);
+            });
+            
+            // Simulate minting a pass
+            mintPassBtn.addEventListener('click', function() {
+                if (!walletConnected) {
+                    alert('Please connect your wallet first');
+                    return;
+                }
+                
+                // Show minting simulation
+                accessStatus.textContent = 'Minting pass... (confirm in MetaMask)';
+                
+                // Simulate transaction delay
+                setTimeout(() => {
+                    hasPass = true;
+                    updateUI();
+                    alert('Pass minted successfully!');
+                }, 2000);
+            });
+            
+            // Simulate claiming a badge
+            claimBadgeBtn.addEventListener('click', function() {
+                if (!walletConnected) {
+                    alert('Please connect your wallet first');
+                    return;
+                }
+                
+                if (!hasPass) {
+                    alert('You need a pass to claim a badge');
+                    return;
+                }
+                
+                // Show claiming simulation
+                accessStatus.textContent = 'Claiming badge... (confirm in MetaMask)';
+                
+                // Simulate transaction delay
+                setTimeout(() => {
+                    hasBadge = true;
+                    updateUI();
+                    alert('Badge claimed successfully!');
+                }, 2000);
+            });
+            
+            // Update UI based on state
+            function updateUI() {
+                if (!walletConnected) {
+                    accessStatus.className = 'status locked';
+                    accessStatus.textContent = 'AR Content Locked - Connect Wallet';
+                    mintPassBtn.disabled = true;
+                    claimBadgeBtn.disabled = true;
+                    collectionDiv.innerHTML = '<p>Connect your wallet to view your passes and badges</p>';
+                    return;
+                }
+                
+                if (hasPass) {
+                    accessStatus.className = 'status unlocked';
+                    accessStatus.textContent = 'AR Content Unlocked - Enjoy the experience!';
+                    mintPassBtn.disabled = true;
+                    claimBadgeBtn.disabled = false;
+                    
+                    // Update AR placeholder
+                    document.querySelector('.ar-placeholder').innerHTML = `
+                        <div style="text-align: center;">
+                            <h3>AR Experience Active</h3>
+                            <p>Point your camera at the AR marker to view content</p>
+                        </div>
+                    `;
+                } else {
+                    accessStatus.className = 'status locked';
+                    accessStatus.textContent = 'Access Denied - You need a pass';
+                    mintPassBtn.disabled = false;
+                    claimBadgeBtn.disabled = true;
+                }
+                
+                // Update collection
+                let collectionHTML = '';
+                if (hasPass) {
+                    collectionHTML += '<div class="badge">Access Pass</div>';
+                }
+                if (hasBadge) {
+                    collectionHTML += '<div class="badge">Attendance Badge</div>';
+                }
+                if (!hasPass && !hasBadge) {
+                    collectionHTML = '<p>No items in your collection yet</p>';
+                }
+                collectionDiv.innerHTML = collectionHTML;
+            }
+            
+            // Initialize UI
+            updateUI();
+        });
+    </script>
+</body>
+</html>
